@@ -96,7 +96,7 @@ conda activate biorobotics
 ### 1.2 Verify Installation
 
 ```bash
-python -c "import neurokit2; import pyserial; from PyQt6.QtWidgets import QApplication; print('All packages installed!')"
+python -c "import neurokit2; import serial; from PyQt6.QtWidgets import QApplication; print('All packages installed!')"
 ```
 
 ---
