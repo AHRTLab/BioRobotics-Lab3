@@ -285,6 +285,12 @@ class StroopTestWindow(QMainWindow):
         self.awaiting_response = False
         self.test_finished = False
 
+        # Cancellable timeout timer — prevents stale timeouts from
+        # firing into later trials when the participant responds quickly.
+        self.timeout_timer = QTimer(self)
+        self.timeout_timer.setSingleShot(True)
+        self.timeout_timer.timeout.connect(self.stimulus_timeout)
+
         self.setup_ui()
         self.generate_trials()
 
@@ -420,7 +426,7 @@ class StroopTestWindow(QMainWindow):
         self.awaiting_response = True
 
         # Timeout: if no response within stimulus time, record as timeout
-        QTimer.singleShot(self.params.stimulus_time_ms, self.stimulus_timeout)
+        self.timeout_timer.start(self.params.stimulus_time_ms)
 
     def stimulus_timeout(self):
         """Handle stimulus timeout (no response given)."""
@@ -449,9 +455,12 @@ class StroopTestWindow(QMainWindow):
         """Handle keyboard responses during test."""
         key = event.key()
 
-        # Escape to quit
+        # Escape to quit — if test is done, close the window
         if key == Qt.Key.Key_Escape:
-            self.finish_test()
+            if self.test_finished:
+                self.close()
+            else:
+                self.finish_test()
             return
 
         # Only process during stimulus
@@ -469,6 +478,9 @@ class StroopTestWindow(QMainWindow):
         # Record response
         response_color = RESPONSE_KEYS[key]
         rt_ms = (response_time - self.stimulus_onset_time) * 1000
+
+        # Cancel the timeout timer so it doesn't fire into a later trial
+        self.timeout_timer.stop()
 
         trial.response_key = response_color
         trial.correct = (response_color == trial.ink_color)
