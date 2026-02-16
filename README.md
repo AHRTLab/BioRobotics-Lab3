@@ -96,7 +96,7 @@ conda activate biorobotics
 ### 1.2 Verify Installation
 
 ```bash
-python -c "import neurokit2; import pyserial; from PyQt6.QtWidgets import QApplication; print('All packages installed!')"
+python -c "import neurokit2; import serial; from PyQt6.QtWidgets import QApplication; print('All packages installed!')"
 ```
 
 ---
@@ -254,6 +254,13 @@ For the richest dataset, run the Stroop test while simultaneously recording GSR.
 ```bash
 python src/bioradio.py --lsl
 ```
+
+```bash
+python src/visualizer.py
+```
+
+Then record the entire session for the stroop test.
+
 ---
 
 ## Part 5: Take-Home Analysis
