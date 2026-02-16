@@ -45,7 +45,7 @@ from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QDialog, QWidget,
     QVBoxLayout, QHBoxLayout, QGridLayout,
     QLabel, QSlider, QPushButton, QSpinBox,
-    QGroupBox, QSizePolicy,
+    QGroupBox, QSizePolicy, QLineEdit, QComboBox,
 )
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QFont, QKeyEvent, QColor
@@ -84,6 +84,8 @@ INCORRECT_COLOR = '#FF3333'
 @dataclass
 class StroopParams:
     """Configurable Stroop test parameters."""
+    participant_id: str = "P00"
+    condition: str = "baseline"
     n_trials: int = 30
     congruent_pct: int = 50
     stimulus_time_ms: int = 3000
@@ -101,6 +103,7 @@ class Trial:
     correct: bool = False
     response_time_ms: float = 0.0
     timestamp_sec: float = 0.0
+    stimulus_datetime: str = ""
 
 
 # ======================================================================
@@ -134,6 +137,32 @@ class StroopSettingsDialog(QDialog):
         subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
         subtitle.setWordWrap(True)
         layout.addWidget(subtitle)
+
+        layout.addSpacing(10)
+
+        # Participant info group
+        info_group = QGroupBox("Participant Info")
+        info_layout = QGridLayout(info_group)
+
+        info_layout.addWidget(QLabel("Participant ID:"), 0, 0)
+        self.participant_id_edit = QLineEdit(self.params.participant_id)
+        self.participant_id_edit.setPlaceholderText("e.g., P01")
+        info_layout.addWidget(self.participant_id_edit, 0, 1)
+
+        info_layout.addWidget(QLabel("Condition:"), 1, 0)
+        self.condition_combo = QComboBox()
+        self.condition_combo.setEditable(True)
+        self.condition_combo.addItems([
+            "baseline", "stress", "post-rest", "practice",
+        ])
+        idx = self.condition_combo.findText(self.params.condition)
+        if idx >= 0:
+            self.condition_combo.setCurrentIndex(idx)
+        else:
+            self.condition_combo.setCurrentText(self.params.condition)
+        info_layout.addWidget(self.condition_combo, 1, 1)
+
+        layout.addWidget(info_group)
 
         layout.addSpacing(10)
 
@@ -226,6 +255,8 @@ class StroopSettingsDialog(QDialog):
     def get_params(self) -> StroopParams:
         """Return the configured parameters."""
         return StroopParams(
+            participant_id=self.participant_id_edit.text().strip() or "P00",
+            condition=self.condition_combo.currentText().strip() or "baseline",
             n_trials=self.trials_spin.value(),
             congruent_pct=self.congruent_slider.value(),
             stimulus_time_ms=self.stimulus_slider.value(),
@@ -250,6 +281,7 @@ class StroopTestWindow(QMainWindow):
         self.current_trial: Optional[Trial] = None
         self.test_start_time = 0.0
         self.stimulus_onset_time = 0.0
+        self.stimulus_onset_datetime = ""
         self.awaiting_response = False
         self.test_finished = False
 
@@ -384,6 +416,7 @@ class StroopTestWindow(QMainWindow):
         self.stimulus_label.setStyleSheet(f"color: {hex_color};")
 
         self.stimulus_onset_time = time.perf_counter()
+        self.stimulus_onset_datetime = datetime.now().isoformat(timespec='milliseconds')
         self.awaiting_response = True
 
         # Timeout: if no response within stimulus time, record as timeout
@@ -402,6 +435,7 @@ class StroopTestWindow(QMainWindow):
         trial.correct = False
         trial.response_time_ms = self.params.stimulus_time_ms
         trial.timestamp_sec = self.stimulus_onset_time - self.test_start_time
+        trial.stimulus_datetime = self.stimulus_onset_datetime
 
         self.awaiting_response = False
         self.results.append(trial)
@@ -441,6 +475,7 @@ class StroopTestWindow(QMainWindow):
         trial.response_time_ms = round(rt_ms, 1)
         trial.timestamp_sec = round(
             self.stimulus_onset_time - self.test_start_time, 3)
+        trial.stimulus_datetime = self.stimulus_onset_datetime
 
         self.awaiting_response = False
         self.results.append(trial)
@@ -504,6 +539,8 @@ class StroopTestWindow(QMainWindow):
         with open(self.output_file, "w", newline="") as f:
             # Metadata header
             f.write(f"# stroop_test_results\n")
+            f.write(f"# participant_id: {self.params.participant_id}\n")
+            f.write(f"# condition: {self.params.condition}\n")
             f.write(f"# timestamp: {datetime.now().strftime('%Y%m%d_%H%M%S')}\n")
             f.write(f"# n_trials: {self.params.n_trials}\n")
             f.write(f"# congruent_pct: {self.params.congruent_pct}\n")
@@ -513,15 +550,17 @@ class StroopTestWindow(QMainWindow):
 
             writer = csv.writer(f)
             writer.writerow([
-                "trial", "word", "ink_color", "congruent",
-                "response_key", "correct", "response_time_ms", "timestamp_sec"
+                "participant_id", "condition", "trial", "word", "ink_color",
+                "congruent", "response_key", "correct", "response_time_ms",
+                "timestamp_sec", "stimulus_datetime",
             ])
 
             for t in self.results:
                 writer.writerow([
+                    self.params.participant_id, self.params.condition,
                     t.number, t.word, t.ink_color, t.congruent,
                     t.response_key, t.correct,
-                    t.response_time_ms, t.timestamp_sec,
+                    t.response_time_ms, t.timestamp_sec, t.stimulus_datetime,
                 ])
 
         print(f"\nStroop results saved to: {self.output_file}")
@@ -563,7 +602,8 @@ def run_stroop(n_trials=None, output_file=None, fullscreen=True):
     if output_file is None:
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         os.makedirs("data", exist_ok=True)
-        output_file = f"data/stroop_results_{ts}.csv"
+        pid = params.participant_id
+        output_file = f"data/{pid}_stroop_results_{ts}.csv"
 
     # Create and show test window
     window = StroopTestWindow(params, output_file)
