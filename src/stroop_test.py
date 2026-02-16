@@ -153,7 +153,7 @@ class StroopSettingsDialog(QDialog):
         self.condition_combo = QComboBox()
         self.condition_combo.setEditable(True)
         self.condition_combo.addItems([
-            "baseline", "stress", "post-rest", "practice",
+            "practice", "low stress", "high stress",
         ])
         idx = self.condition_combo.findText(self.params.condition)
         if idx >= 0:
