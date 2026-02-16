@@ -107,7 +107,7 @@ python -c "import neurokit2; import pyserial; from PyQt6.QtWidgets import QAppli
 
 **Electrode placement:**
 
-1. Clean the palmar surface of the **index and middle fingers** on the **non-dominant hand** with an alcohol wipe
+1. Clean the palmar surface of the **index and middle fingers** on the **non-dominant hand** 
 2. Let the skin dry completely (30 seconds)
 3. Apply a small amount of electrode gel if using dry electrodes
 4. Attach the finger electrodes snugly — firm contact but not uncomfortable
@@ -247,10 +247,13 @@ A settings dialog will appear. Configure:
 - Respond as quickly and accurately as possible
 - Results are saved automatically to a CSV file
 
-### 4.4 Optional: Run the Stroop Test While Recording GSR
+### 4.4 Run the Stroop Test While Recording GSR
 
 For the richest dataset, run the Stroop test while simultaneously recording GSR. You can use the visualizer or a separate BioRadio acquisition script running alongside the Stroop test. Note the Stroop test start time to synchronize timestamps.
 
+```bash
+python src/bioradio.py --lsl
+```
 ---
 
 ## Part 5: Take-Home Analysis
