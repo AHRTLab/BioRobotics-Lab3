@@ -254,6 +254,13 @@ For the richest dataset, run the Stroop test while simultaneously recording GSR.
 ```bash
 python src/bioradio.py --lsl
 ```
+
+```bash
+python src/visualizer.py
+```
+
+Then record the entire session for the stroop test.
+
 ---
 
 ## Part 5: Take-Home Analysis
